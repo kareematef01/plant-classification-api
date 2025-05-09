@@ -1,27 +1,34 @@
-import os
 import torch
 import timm
 from flask import Flask, request, jsonify
 from torchvision import transforms
 from PIL import Image
 
+# Flask setup
 app = Flask(__name__)
 
-# Load class names
-with open("class_names.txt", "r") as f:
-    class_names = [line.strip() for line in f.readlines()]
-
-# Load model
+# Load model function
 def load_model(model_path, num_classes):
-    model = timm.create_model("efficientnet_b3a", pretrained=False, num_classes=num_classes)
+    model = timm.create_model("efficientnet_b3", pretrained=False, num_classes=num_classes)
     model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
     model.eval()
     return model
 
-model_path = "plant_best_model (1).pth"
-model = load_model(model_path, num_classes=len(class_names))
+# Load your trained model
+model_path = "plant_best_model (1).pth"  # ← تأكدي من الاسم الصحيح
+num_classes = 30
+model = load_model(model_path, num_classes)
 
-# Transform
+# Class names: النباتات فقط
+class_names = [
+    "aloevera", "banana", "bilimbi", "cantaloupe", "cassava", "coconut",
+    "corn", "cucumber", "curcuma", "eggplant", "galangal", "ginger",
+    "guava", "kale", "longbeans", "mango", "melon", "orange", "paddy",
+    "papaya", "peperchili", "pineapple", "pomelo", "shallot", "soybeans",
+    "spinach", "sweetpotatoes", "tobacco", "waterapple", "watermelon"
+]
+
+# Transformations
 transform = transforms.Compose([
     transforms.Resize((300, 300)),
     transforms.ToTensor(),
@@ -29,32 +36,30 @@ transform = transforms.Compose([
                         [0.229, 0.224, 0.225])
 ])
 
-# Predict function
+# Prediction function
 def predict_image(file):
     image = Image.open(file).convert("RGB")
     image = transform(image).unsqueeze(0)
 
     with torch.no_grad():
         output = model(image)
-        _, pred = torch.max(output, 1)
+        _, predicted = torch.max(output, 1)
 
-    return class_names[pred.item()]
+    return class_names[predicted.item()]
 
-@app.route("/", methods=["GET"])
-def home():
-    return "Plant Classification API is running!"
-
-@app.route("/predict", methods=["POST"])
+# API endpoint
+@app.route('/', methods=['POST'])
 def predict():
-    if "imagefile" not in request.files:
-        return jsonify({"error": "No image uploaded"}), 400
+    if 'imagefile' not in request.files:
+        return jsonify({'error': 'No image uploaded'}), 400
 
-    file = request.files["imagefile"]
+    file = request.files['imagefile']
     try:
         prediction = predict_image(file)
-        return jsonify({"prediction": prediction})
+        return jsonify({"result": prediction})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-if __name__ == "__main__":
+# Run the app locally
+if __name__ == '__main__':
     app.run(port=3000, debug=True)
