@@ -15,7 +15,7 @@ def load_model(model_path, num_classes):
     return model
 
 # Load your trained model
-model_path = "plant_best_model (1).pth"  # ← تأكدي من الاسم الصحيح
+model_path = "plant_best_model(1).pth"  
 num_classes = 30
 model = load_model(model_path, num_classes)
 
@@ -30,7 +30,7 @@ class_names = [
 
 # Transformations
 transform = transforms.Compose([
-    transforms.Resize((300, 300)),
+    transforms.Resize((240, 240)),
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406],
                         [0.229, 0.224, 0.225])
